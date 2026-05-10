@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "PowerShell(Get-ChildItem \"c:\\\\Maritime\" -Recurse -File | Where-Object { $_.FullName -notmatch 'node_modules' } | Select-Object -ExpandProperty FullName | Sort-Object)",
+      "PowerShell(cd \"c:\\\\Maritime\\\\backend\"; npx tsc --noEmit 2>&1; echo \"Backend: $LASTEXITCODE\")",
+      "PowerShell(cd \"c:\\\\Maritime\\\\frontend\"; npx tsc --noEmit 2>&1; echo \"Frontend: $LASTEXITCODE\")"
+    ]
+  }
+}

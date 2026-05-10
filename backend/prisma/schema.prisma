@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CREW
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum DrillType {
+  FIRE_DRILL
+  EVACUATION
+  MAN_OVERBOARD
+  LIFEBOAT
+  OIL_SPILL
+  EMERGENCY_STEERING
+  ABANDON_SHIP
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(CREW)
+  shipId       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ship             Ship?             @relation(fields: [shipId], references: [id])
+  assignedTasks    MaintenanceTask[] @relation("AssignedTo")
+  createdTasks     MaintenanceTask[] @relation("CreatedBy")
+  taskNotes        TaskNote[]
+  drillAttendances DrillAttendance[]
+  createdDrills    SafetyDrill[]
+
+  @@map("users")
+}
+
+model Ship {
+  id        String   @id @default(cuid())
+  name      String
+  imoNumber String   @unique
+  type      String
+  flag      String   @default("Unknown")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  crew             User[]
+  maintenanceTasks MaintenanceTask[]
+  safetyDrills     SafetyDrill[]
+
+  @@map("ships")
+}
+
+model MaintenanceTask {
+  id           String     @id @default(cuid())
+  title        String
+  description  String
+  shipId       String
+  assignedToId String?
+  createdById  String
+  status       TaskStatus @default(PENDING)
+  priority     String     @default("MEDIUM")
+  dueDate      DateTime
+  completedAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  ship       Ship      @relation(fields: [shipId], references: [id], onDelete: Cascade)
+  assignedTo User?     @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdBy  User      @relation("CreatedBy", fields: [createdById], references: [id])
+  notes      TaskNote[]
+
+  @@map("maintenance_tasks")
+}
+
+model TaskNote {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  note      String
+  createdAt DateTime @default(now())
+
+  task MaintenanceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User            @relation(fields: [userId], references: [id])
+
+  @@map("task_notes")
+}
+
+model SafetyDrill {
+  id            String    @id @default(cuid())
+  title         String
+  type          DrillType
+  shipId        String
+  scheduledDate DateTime
+  createdById   String
+  description   String    @default("")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  ship        Ship              @relation(fields: [shipId], references: [id], onDelete: Cascade)
+  createdBy   User              @relation(fields: [createdById], references: [id])
+  attendances DrillAttendance[]
+
+  @@map("safety_drills")
+}
+
+model DrillAttendance {
+  id          String    @id @default(cuid())
+  drillId     String
+  userId      String
+  attended    Boolean   @default(false)
+  completedAt DateTime?
+  notes       String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  drill SafetyDrill @relation(fields: [drillId], references: [id], onDelete: Cascade)
+  user  User        @relation(fields: [userId], references: [id])
+
+  @@unique([drillId, userId])
+  @@map("drill_attendances")
+}
